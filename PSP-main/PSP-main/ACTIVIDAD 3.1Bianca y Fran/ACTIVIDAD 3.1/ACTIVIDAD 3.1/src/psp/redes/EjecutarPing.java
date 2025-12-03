@@ -11,11 +11,13 @@ import java.util.Map;
 
 public class EjecutarPing implements Runnable {
 
-    private static final Object lock = new Object();
     ProcessBuilder pb;
     Process p;
-    int MAX_PUERTOS = 1000;
-    String[] comando = null;
+
+    private final int MAX_PUERTOS = 1000;
+
+    private String[] comando = null;
+    private String resultado = "";
 
     public EjecutarPing(String[] comando){
         this.comando = comando;
@@ -23,10 +25,17 @@ public class EjecutarPing implements Runnable {
 
     @Override
     public void run() {
-        ejecutarPN(comando);
+        resultado = ejecutarPN(comando);
     }
 
-    public void ejecutarPN(String[] comando) {
+    public String getResultado() {
+        return resultado;
+    }
+
+    public String ejecutarPN(String[] comando) {
+        // Inicializamos el StringBuilder para mostrar la salida
+        StringBuilder salida = new StringBuilder();
+
         try {
             // Creamos un ProcessBuilder para ejecutar el comando externo (ping)
             pb = new ProcessBuilder(comando);
@@ -44,7 +53,6 @@ public class EjecutarPing implements Runnable {
             // Si el ping fue exitoso
             if (retorno == 0) {
                 // Construimos toda la salida de la IP en un buffer
-                StringBuilder salida = new StringBuilder();
                 salida.append("IP ").append(ip).append(" ACTIVA\n");
 
                 // Recorremos los puertos desde 0 hasta MAX_PUERTOS
@@ -53,21 +61,18 @@ public class EjecutarPing implements Runnable {
                     if (estaAbierto(ip, i, 2000)) {
                         // Si está abierto, obtenemos la descripción del puerto desde NombrePuertos.txt
                         String descripcion = obtenerDescripcionPuerto(i,"NombrePuertos.txt");
-                        // Mostramos por pantalla el puerto abierto y su descripción
+                        // Añadimos la salida al StringBuilder
                         salida.append("\tPuerto: ").append(i)
-                                .append(" ABIERTO: ").append(descripcion)
-                                .append("\n");
+                                .append(" ABIERTO: ").append(descripcion).append("\n");
                     }
                 }
-                // Imprimir el resultado
-                synchronized (lock) {
-                    System.out.print(salida);
-                }
+
             }
         } catch (IOException | InterruptedException e) {
             // Capturamos cualquier error de ejecución del proceso o interrupción y lo lanzamos como RuntimeException
             throw new RuntimeException(e);
         }
+        return salida.toString();
     }
 
     public static boolean estaAbierto(String IP, int puerto, int tiempo) {

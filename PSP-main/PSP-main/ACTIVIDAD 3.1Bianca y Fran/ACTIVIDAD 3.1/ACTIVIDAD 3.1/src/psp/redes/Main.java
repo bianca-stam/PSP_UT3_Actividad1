@@ -1,5 +1,7 @@
 package psp.redes;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
@@ -24,6 +26,10 @@ public class Main {
         String[] comando;
 
         if (validarSubred(direccion)) {
+
+            List<Thread> hilos = new ArrayList<>();
+            List<EjecutarPing> tareas = new ArrayList<>();
+
             for (int i = 0; i < 255; i++) {
                 if (os.contains("win")) { // para windows
                     comando = new String[]{"ping", "-n", "2", direccion + "." + i};
@@ -31,8 +37,27 @@ public class Main {
                     comando = new String[]{"ping", "-c", "2", direccion + "." + i};
                 }
 
-                Thread h1 = new Thread(new EjecutarPing(comando));
-                h1.start();
+                EjecutarPing tarea = new EjecutarPing(comando);
+                Thread t = new Thread(tarea);
+
+                tareas.add(tarea);
+                hilos.add(t);
+
+                t.start();
+            }
+            for (Thread t : hilos) {
+                try {
+                    t.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            for (EjecutarPing task : tareas) {
+                String res = task.getResultado();
+                if (!res.isBlank()) {
+                    System.out.print(res);
+                }
             }
         }else {
             System.out.println("Direccion IP no valida: "+ direccion);
